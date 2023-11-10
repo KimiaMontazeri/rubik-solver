@@ -1,6 +1,57 @@
+from collections import deque
 import numpy as np
 from state import next_state, solved_state
 from location import next_location
+
+
+def is_goal_state(state):
+    return np.array_equal(state, solved_state())
+
+
+def generate_successors(state):
+    successors = []
+    for action in range(12):
+        next = next_state(state, action)
+        successors.append((next, action))
+    return successors
+
+
+def depth_limited_dfs(start_state, depth_limit):
+    visited = set()
+    stack = deque([(start_state, 0, [])])
+    explored_states = 0
+
+    while stack:
+        current_state, depth, path = stack.pop()
+
+        if is_goal_state(current_state):
+            return path, explored_states
+
+        if depth < depth_limit:
+            visited.add(tuple(current_state.flatten()))
+            explored_states += 1
+            successors = generate_successors(current_state)
+
+            for successor, action in successors:
+                state_tuple = tuple(successor.flatten())
+
+                if state_tuple not in visited:
+                    visited.add(state_tuple)
+                    stack.append((successor, depth + 1, path + [action]))
+
+    return None, explored_states
+
+
+def iterative_deepening_dfs(initial_state, max_depth=1000):
+    depth_limit = 1
+    while depth_limit <= max_depth:
+        result, explored_states = depth_limited_dfs(start_state=np.copy(initial_state), depth_limit=depth_limit)
+        if result is not None:
+            print('path: ', result)
+            print('Number of explored states: ', explored_states)
+            print('Depth to reach the goal: ', depth_limit)
+            return result
+        depth_limit += 1
 
 
 def solve(init_state, init_location, method):
@@ -26,7 +77,7 @@ def solve(init_state, init_location, method):
         return list(np.random.randint(1, 12+1, 10))
     
     elif method == 'IDS-DFS':
-        ...
+        return list(iterative_deepening_dfs(init_state))
     
     elif method == 'A*':
         ...
