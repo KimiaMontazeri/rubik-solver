@@ -7,6 +7,21 @@ from location import next_location, calculate_heuristic
 
 NUM_OF_ACTIONS = 12
 
+opposite_action_mapping = {
+    1: 7,
+    2: 8,
+    3: 9,
+    4: 10,
+    5: 11,
+    6: 12,
+    7: 1,
+    8: 2,
+    9: 3,
+    10: 4,
+    11: 5,
+    12: 6
+}
+
 
 def is_goal_state(state):
     return np.array_equal(state, solved_state())
@@ -96,6 +111,49 @@ def a_star_search(initial_state, initial_location):
     return None
 
 
+def bidirectional_bfs(initial_state):
+    visited_forward = {}  # Dictionary to store paths associated with states
+    visited_backward = {}  # Dictionary to store paths associated with states
+
+    queue_forward = deque([(initial_state, [])])
+    queue_backward = deque([(solved_state(), [])])
+
+    while queue_forward and queue_backward:
+        # Forward BFS
+        current_state_forward, path_forward = queue_forward.popleft()
+
+        if tuple(current_state_forward.flatten()) in visited_backward:
+            # Paths meet in the middle
+            meeting_point = tuple(current_state_forward.flatten())
+            path_backward = visited_backward[meeting_point]
+            return path_forward + path_backward[::-1]
+
+        visited_forward[tuple(current_state_forward.flatten())] = path_forward
+
+        successors_forward = generate_successors(current_state_forward)
+        for successor_state, action in successors_forward:
+            if tuple(successor_state.flatten()) not in visited_forward:
+                queue_forward.append((successor_state, path_forward + [action]))
+
+        # Backward BFS
+        current_state_backward, path_backward = queue_backward.popleft()
+
+        if tuple(current_state_backward.flatten()) in visited_forward:
+            # Paths meet in the middle
+            meeting_point = tuple(current_state_backward.flatten())
+            path_forward = visited_forward[meeting_point]
+            return path_forward + path_backward[::-1]
+
+        visited_backward[tuple(current_state_backward.flatten())] = path_backward
+
+        successors_backward = generate_successors(current_state_backward)
+        for successor_state, action in successors_backward:
+            if tuple(successor_state.flatten()) not in visited_backward:
+                queue_backward.append((successor_state, path_backward + [opposite_action_mapping[action]]))
+
+    return None
+
+
 def solve(init_state, init_location, method):
     """
     Solves the given Rubik's cube using the selected search algorithm.
@@ -125,7 +183,7 @@ def solve(init_state, init_location, method):
         return list(a_star_search(init_state, init_location))
 
     elif method == 'BiBFS':
-        ...
+        return list(bidirectional_bfs(init_state))
     
     else:
         return []
