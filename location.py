@@ -66,7 +66,7 @@ def next_location(location, action):
 
 
 def manhattan_distance(a, b):
-    return np.sum(np.abs(a - b))
+    return np.sum(np.abs(np.subtract(a, b)))
 
 
 def calculate_heuristic(current_location):
@@ -75,7 +75,6 @@ def calculate_heuristic(current_location):
 
     for goal_value in range(1, np.max(goal_location) + 1):
         goal_index = np.argwhere(goal_location == goal_value)[0]
-
         current_index = np.argwhere(current_location == goal_value)[0]
 
         distance = manhattan_distance(goal_index, current_index)

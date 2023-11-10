@@ -1,7 +1,11 @@
-from collections import deque
 import numpy as np
+from collections import deque
+from queue import PriorityQueue
 from state import next_state, solved_state
-from location import next_location
+from location import next_location, calculate_heuristic
+
+
+NUM_OF_ACTIONS = 12
 
 
 def is_goal_state(state):
@@ -10,9 +14,18 @@ def is_goal_state(state):
 
 def generate_successors(state):
     successors = []
-    for action in range(12):
-        next = next_state(state, action)
-        successors.append((next, action))
+    for action in range(NUM_OF_ACTIONS):
+        new_state = next_state(state, action)
+        successors.append((new_state, action))
+    return successors
+
+
+def generate_successors_with_location(state, location):
+    successors = []
+    for action in range(NUM_OF_ACTIONS):
+        new_state = next_state(state, action)
+        new_location = next_location(location, action)
+        successors.append((new_state, new_location, action))
     return successors
 
 
@@ -54,6 +67,35 @@ def iterative_deepening_dfs(initial_state, max_depth=1000):
         depth_limit += 1
 
 
+def a_star_search(initial_state, initial_location):
+    visited = set()
+    # Dictionary to store costs associated with states
+    visited_costs = {}
+    priority_queue = PriorityQueue()
+
+    initial_cost = calculate_heuristic(initial_location)
+    priority_queue.put((initial_cost, tuple(initial_state.flatten()), tuple(initial_location.flatten()), []))
+
+    while not priority_queue.empty():
+        current_cost, current_state_tuple, current_location_tuple, path = priority_queue.get()
+
+        current_state = np.array(current_state_tuple).reshape((12, 2))
+        current_location = np.array(current_location_tuple).reshape((2, 2, 2))
+        if is_goal_state(current_state):
+            return path
+
+        if tuple(current_state.flatten()) not in visited or current_cost < visited_costs[tuple(current_state.flatten())]:
+            visited.add(tuple(current_state.flatten()))
+            visited_costs[tuple(current_state.flatten())] = current_cost
+
+            successors = generate_successors_with_location(current_state, current_location)
+            for successor_state, successor_location, action in successors:
+                successor_cost = calculate_heuristic(successor_location) + len(path) + 1
+                priority_queue.put((successor_cost, tuple(successor_state.flatten()), tuple(successor_location.flatten()), path + [action]))
+
+    return None
+
+
 def solve(init_state, init_location, method):
     """
     Solves the given Rubik's cube using the selected search algorithm.
@@ -80,7 +122,7 @@ def solve(init_state, init_location, method):
         return list(iterative_deepening_dfs(init_state))
     
     elif method == 'A*':
-        ...
+        return list(a_star_search(init_state, init_location))
 
     elif method == 'BiBFS':
         ...
