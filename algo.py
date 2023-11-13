@@ -87,6 +87,7 @@ def a_star_search(initial_state, initial_location):
     # Dictionary to store costs associated with states
     visited_costs = {}
     priority_queue = PriorityQueue()
+    explored_states = 0
 
     initial_cost = calculate_heuristic(initial_location)
     priority_queue.put((initial_cost, tuple(initial_state.flatten()), tuple(initial_location.flatten()), []))
@@ -97,9 +98,10 @@ def a_star_search(initial_state, initial_location):
         current_state = np.array(current_state_tuple).reshape((12, 2))
         current_location = np.array(current_location_tuple).reshape((2, 2, 2))
         if is_goal_state(current_state):
-            return path
+            return path, explored_states
 
         if tuple(current_state.flatten()) not in visited or current_cost < visited_costs[tuple(current_state.flatten())]:
+            explored_states += 1
             visited.add(tuple(current_state.flatten()))
             visited_costs[tuple(current_state.flatten())] = current_cost
 
@@ -108,12 +110,15 @@ def a_star_search(initial_state, initial_location):
                 successor_cost = calculate_heuristic(successor_location) + len(path) + 1
                 priority_queue.put((successor_cost, tuple(successor_state.flatten()), tuple(successor_location.flatten()), path + [action]))
 
-    return None
+    return None, explored_states
 
 
 def bidirectional_bfs(initial_state):
-    visited_forward = {}  # Dictionary to store paths associated with states
-    visited_backward = {}  # Dictionary to store paths associated with states
+    explored_states = 0
+
+    # Dictionary to store paths associated with states
+    visited_forward = {}
+    visited_backward = {}
 
     queue_forward = deque([(initial_state, [])])
     queue_backward = deque([(solved_state(), [])])
@@ -126,9 +131,10 @@ def bidirectional_bfs(initial_state):
             # Paths meet in the middle
             meeting_point = tuple(current_state_forward.flatten())
             path_backward = visited_backward[meeting_point]
-            return path_forward + path_backward[::-1]
+            return path_forward + path_backward[::-1], explored_states
 
         visited_forward[tuple(current_state_forward.flatten())] = path_forward
+        explored_states += 1
 
         successors_forward = generate_successors(current_state_forward)
         for successor_state, action in successors_forward:
@@ -142,16 +148,17 @@ def bidirectional_bfs(initial_state):
             # Paths meet in the middle
             meeting_point = tuple(current_state_backward.flatten())
             path_forward = visited_forward[meeting_point]
-            return path_forward + path_backward[::-1]
+            return path_forward + path_backward[::-1], explored_states
 
         visited_backward[tuple(current_state_backward.flatten())] = path_backward
+        explored_states += 1
 
         successors_backward = generate_successors(current_state_backward)
         for successor_state, action in successors_backward:
             if tuple(successor_state.flatten()) not in visited_backward:
                 queue_backward.append((successor_state, path_backward + [opposite_action_mapping[action]]))
 
-    return None
+    return None, explored_states
 
 
 def solve(init_state, init_location, method):
@@ -180,10 +187,16 @@ def solve(init_state, init_location, method):
         return list(iterative_deepening_dfs(init_state))
     
     elif method == 'A*':
-        return list(a_star_search(init_state, init_location))
+        path, explored_states = a_star_search(init_state, init_location)
+        print('Number of explored states: ', explored_states)
+        print('Depth to reach the goal: ', len(path))
+        return list(path)
 
     elif method == 'BiBFS':
-        return list(bidirectional_bfs(init_state))
+        path, explored_states = bidirectional_bfs(init_state)
+        print('Number of explored states: ', explored_states)
+        print('Depth to reach the goal: ', len(path))
+        return list(path)
     
     else:
         return []
